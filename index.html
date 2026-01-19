@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gym Progress</title>
+    <style>
+        :root {
+            --bg: #f4f7f6;
+            --card: #ffffff;
+            --primary: #2ecc71;
+            --text: #2c3e50;
+        }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; position: sticky; top: 0; background: var(--bg); padding: 10px 0; }
+        .tab-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; background: #ddd; font-weight: bold; cursor: pointer; }
+        .tab-btn.active { background: var(--primary); color: white; }
+        
+        .block { display: none; }
+        .block.active { display: block; }
+        
+        .exercise-card { background: var(--card); padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        h3 { margin: 0 0 10px 0; font-size: 18px; color: #34495e; }
+        
+        .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+        .input-group { display: flex; flex-direction: column; }
+        label { font-size: 11px; color: #7f8c8d; margin-bottom: 4px; }
+        input { padding: 8px; border: 1px solid #dcdde1; border-radius: 5px; font-size: 14px; width: 80%; }
+        
+        .history { font-size: 12px; color: #95a5a6; margin-top: 8px; border-top: 1px solid #eee; padding-top: 5px; }
+        .save-btn { width: 100%; padding: 15px; background: #3498db; color: white; border: none; border-radius: 10px; font-size: 16px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="showBlock(1)">Блок 1</button>
+        <button class="tab-btn" onclick="showBlock(2)">Блок 2</button>
+    </div>
+
+    <div id="block1" class="block active"></div>
+    <div id="block2" class="block"></div>
+
+    <button class="save-btn" onclick="saveData()">Сохранить тренировку</button>
+
+    <script>
+        const data = {
+            block1: ["Приседания", "Тяга в наклоне", "Жим лежа", "Жим платформы", "Тяга верхнего блока", "Жим стоя", "Жим узким хватом", "Скручивания"],
+            block2: ["Выпады", "Тяга гориз. блока", "Жим под углом 30°", "Разгибания ног", "Тяга верт. узкая", "Разведения сторон", "Трицепс (скамья)", "Бицепс (штанга)"]
+        };
+
+        function render() {
+            [1, 2].forEach(num => {
+                const container = document.getElementById(`block${num}`);
+                container.innerHTML = '';
+                data[`block${num}`].forEach(ex => {
+                    const saved = JSON.parse(localStorage.getItem(ex) || '{"w1":"","w2":"","w3":""}');
+                    container.innerHTML += `
+                        <div class="exercise-card">
+                            <h3>${ex}</h3>
+                            <div class="grid">
+                                <div class="input-group">
+                                    <label>Разминка</label>
+                                    <input type="text" data-ex="${ex}" data-type="w1" value="${saved.w1}" placeholder="кг">
+                                </div>
+                                <div class="input-group">
+                                    <label>Подводка</label>
+                                    <input type="text" data-ex="${ex}" data-type="w2" value="${saved.w2}" placeholder="кг">
+                                </div>
+                                <div class="input-group">
+                                    <label>Рабочий</label>
+                                    <input type="text" data-ex="${ex}" data-type="w3" value="${saved.w3}" placeholder="кг">
+                                </div>
+                            </div>
+                            <div class="history">Прошлый раз: ${saved.w3 || '—'} кг</div>
+                        </div>
+                    `;
+                });
+            });
+        }
+
+        function showBlock(num) {
+            document.querySelectorAll('.block').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`block${num}`).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function saveData() {
+            const inputs = document.querySelectorAll('input');
+            const results = {};
+            
+            inputs.forEach(input => {
+                const ex = input.dataset.ex;
+                const type = input.dataset.type;
+                if (!results[ex]) results[ex] = {};
+                results[ex][type] = input.value;
+            });
+
+            for (let ex in results) {
+                localStorage.setItem(ex, JSON.stringify(results[ex]));
+            }
+            alert('Данные сохранены!');
+            render();
+        }
+
+        render();
+    </script>
+</body>
+</html>
