@@ -2,109 +2,372 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gym Progress</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gym Master Pro + Cloud</title>
     <style>
         :root {
-            --bg: #f4f7f6;
-            --card: #ffffff;
-            --primary: #2ecc71;
-            --text: #2c3e50;
+            --bg: #0b0e14;
+            --card: #161b22;
+            --accent: #58a6ff;
+            --success: #238636;
+            --danger: #da3633;
+            --text: #c9d1d9;
+            --text-dim: #8b949e;
+            --border: #30363d;
         }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; position: sticky; top: 0; background: var(--bg); padding: 10px 0; }
-        .tab-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; background: #ddd; font-weight: bold; cursor: pointer; }
-        .tab-btn.active { background: var(--primary); color: white; }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: -apple-system, system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 10px 10px 220px 10px;
+        }
+
+        .header {
+            padding: 20px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        .online { background: var(--success); box-shadow: 0 0 5px var(--success); }
+
+        .week-selector {
+            display: flex;
+            overflow-x: auto;
+            gap: 8px;
+            padding: 10px 0;
+            scrollbar-width: none;
+        }
+        .week-selector::-webkit-scrollbar { display: none; }
+
+        .week-btn {
+            background: var(--card);
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: 8px 16px;
+            border-radius: 20px;
+            white-space: nowrap;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .week-btn.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            background: var(--card);
+            padding: 4px;
+            border-radius: 12px;
+            margin: 10px 0 20px;
+        }
+
+        .tab-btn {
+            padding: 12px;
+            border: none;
+            background: transparent;
+            color: var(--text-dim);
+            font-weight: 700;
+            border-radius: 10px;
+        }
+        .tab-btn.active {
+            background: var(--border);
+            color: white;
+        }
+
+        .exercise-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .ex-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .ex-name { font-weight: 800; font-size: 16px; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .stat-col { display: flex; flex-direction: column; gap: 4px; }
+
+        .label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .last-val { 
+            font-size: 11px; 
+            color: var(--accent); 
+            background: rgba(88, 166, 255, 0.1);
+            padding: 2px 4px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-bottom: 2px;
+            min-height: 17px;
+        }
+
+        input {
+            background: #000;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 5px;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            text-align: center;
+            width: 100%;
+        }
+
+        input:focus { border-color: var(--accent); outline: none; }
+
+        .footer-controls {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(11, 14, 20, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 15px;
+            border-top: 1px solid var(--border);
+            z-index: 999;
+        }
+
+        .btn-row {
+            display: grid;
+            grid-template-columns: 80px 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            border-radius: 12px;
+            border: none;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 12px;
+        }
+
+        .btn-timer { background: var(--card); color: white; border: 1px solid var(--border); }
+        .btn-save { background: var(--success); color: white; font-size: 16px; }
         
-        .block { display: none; }
-        .block.active { display: block; }
-        
-        .exercise-card { background: var(--card); padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        h3 { margin: 0 0 10px 0; font-size: 18px; color: #34495e; }
-        
-        .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-        .input-group { display: flex; flex-direction: column; }
-        label { font-size: 11px; color: #7f8c8d; margin-bottom: 4px; }
-        input { padding: 8px; border: 1px solid #dcdde1; border-radius: 5px; font-size: 14px; width: 80%; }
-        
-        .history { font-size: 12px; color: #95a5a6; margin-top: 8px; border-top: 1px solid #eee; padding-top: 5px; }
-        .save-btn { width: 100%; padding: 15px; background: #3498db; color: white; border: none; border-radius: 10px; font-size: 16px; margin-top: 20px; }
+        #timer-pop {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--accent);
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-weight: 800;
+            display: none;
+            z-index: 1000;
+        }
     </style>
 </head>
 <body>
 
-    <div class="tabs">
-        <button class="tab-btn active" onclick="showBlock(1)">Блок 1</button>
-        <button class="tab-btn" onclick="showBlock(2)">Блок 2</button>
+<div id="timer-pop">01:30</div>
+
+<div class="header">
+    <h2 style="margin:0"><span class="status-dot online"></span>Тренировки</h2>
+    <span id="current-date" style="font-size: 12px; color: var(--text-dim)"></span>
+</div>
+
+<div class="week-selector" id="week-bar"></div>
+
+<div class="tabs">
+    <button class="tab-btn active" id="btn-b1" onclick="setBlock(1)">Блок 1</button>
+    <button class="tab-btn" id="btn-b2" onclick="setBlock(2)">Блок 2</button>
+</div>
+
+<div id="exercise-list"></div>
+
+<div class="footer-controls">
+    <div class="btn-row">
+        <button class="btn btn-timer" onclick="toggleTimer()">⏱ 1:30</button>
+        <button class="btn btn-save" onclick="syncWithSheets()">В таблицу</button>
     </div>
+    <div style="text-align: center; font-size: 10px; color: var(--text-dim)">
+        Данные отправляются в Google Таблицу по нажатию
+    </div>
+</div>
 
-    <div id="block1" class="block active"></div>
-    <div id="block2" class="block"></div>
+<script>
+    // URL твоего Google Apps Script
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyRKya5CJhLbFLHYPLlTGVmwk81LLdR6U1xAS991imede8KfWiRz-mOmKEB256ivDIx/exec";
 
-    <button class="save-btn" onclick="saveData()">Сохранить тренировку</button>
+    const program = {
+        block1: ["Приседание", "Тяга в наклоне", "Жим штанги лежа", "Жим платформы", "Тяга верхнего блока", "Жим гантелей стоя", "Жим узким хватом", "Скручивания"],
+        block2: ["Выпады", "Тяга гориз. блока", "Жим под углом 30°", "Разгибания ног", "Тяга верт. узкая", "Разведения сторон", "Трицепс", "Бицепс"]
+    };
 
-    <script>
-        const data = {
-            block1: ["Приседания", "Тяга в наклоне", "Жим лежа", "Жим платформы", "Тяга верхнего блока", "Жим стоя", "Жим узким хватом", "Скручивания"],
-            block2: ["Выпады", "Тяга гориз. блока", "Жим под углом 30°", "Разгибания ног", "Тяга верт. узкая", "Разведения сторон", "Трицепс (скамья)", "Бицепс (штанга)"]
-        };
+    let currentWeek = parseInt(localStorage.getItem('activeWeek')) || 1;
+    let currentBlock = 1;
 
-        function render() {
-            [1, 2].forEach(num => {
-                const container = document.getElementById(`block${num}`);
-                container.innerHTML = '';
-                data[`block${num}`].forEach(ex => {
-                    const saved = JSON.parse(localStorage.getItem(ex) || '{"w1":"","w2":"","w3":""}');
-                    container.innerHTML += `
-                        <div class="exercise-card">
-                            <h3>${ex}</h3>
-                            <div class="grid">
-                                <div class="input-group">
-                                    <label>Разминка</label>
-                                    <input type="text" data-ex="${ex}" data-type="w1" value="${saved.w1}" placeholder="кг">
-                                </div>
-                                <div class="input-group">
-                                    <label>Подводка</label>
-                                    <input type="text" data-ex="${ex}" data-type="w2" value="${saved.w2}" placeholder="кг">
-                                </div>
-                                <div class="input-group">
-                                    <label>Рабочий</label>
-                                    <input type="text" data-ex="${ex}" data-type="w3" value="${saved.w3}" placeholder="кг">
-                                </div>
-                            </div>
-                            <div class="history">Прошлый раз: ${saved.w3 || '—'} кг</div>
-                        </div>
-                    `;
-                });
+    function init() {
+        document.getElementById('current-date').innerText = new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+        renderWeeks();
+        renderExercises();
+    }
+
+    function renderWeeks() {
+        const bar = document.getElementById('week-bar');
+        bar.innerHTML = '';
+        for (let i = 1; i <= 12; i++) {
+            const btn = document.createElement('button');
+            btn.className = `week-btn ${i === currentWeek ? 'active' : ''}`;
+            btn.innerText = `Неделя ${i}`;
+            btn.onclick = () => {
+                currentWeek = i;
+                localStorage.setItem('activeWeek', i);
+                renderWeeks();
+                renderExercises();
+            };
+            bar.appendChild(btn);
+        }
+        const activeBtn = bar.querySelector('.active');
+        if(activeBtn) activeBtn.scrollIntoView({ behavior: 'smooth', inline: 'center' });
+    }
+
+    function setBlock(num) {
+        currentBlock = num;
+        document.getElementById('btn-b1').classList.toggle('active', num === 1);
+        document.getElementById('btn-b2').classList.toggle('active', num === 2);
+        renderExercises();
+    }
+
+    function renderExercises() {
+        const container = document.getElementById('exercise-list');
+        container.innerHTML = '';
+        const list = program[`block${currentBlock}`];
+
+        list.forEach(ex => {
+            const currentData = JSON.parse(localStorage.getItem(`w${currentWeek}-${ex}`) || '{}');
+            const prevData = JSON.parse(localStorage.getItem(`w${currentWeek-1}-${ex}`) || '{}');
+
+            const card = document.createElement('div');
+            card.className = 'exercise-card';
+            card.innerHTML = `
+                <div class="ex-info"><div class="ex-name">${ex}</div></div>
+                <div class="stats-grid">
+                    ${renderInputGroup(ex, 'r', 'Разм', currentData.r, prevData.r)}
+                    ${renderInputGroup(ex, 'p', 'Подв', currentData.p, prevData.p)}
+                    ${renderInputGroup(ex, 'w', 'Раб', currentData.w, prevData.w)}
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    function renderInputGroup(ex, type, label, val, lastVal) {
+        return `
+            <div class="stat-col">
+                <div class="label">${label}</div>
+                <div class="last-val">${lastVal ? '← ' + lastVal : ''}</div>
+                <input type="text" data-ex="${ex}" data-type="${type}" value="${val || ''}" inputmode="decimal" onchange="localSave(this)">
+            </div>
+        `;
+    }
+
+    function localSave(input) {
+        const ex = input.dataset.ex;
+        const type = input.dataset.type;
+        let exData = JSON.parse(localStorage.getItem(`w${currentWeek}-${ex}`) || '{}');
+        exData[type] = input.value;
+        localStorage.setItem(`w${currentWeek}-${ex}`, JSON.stringify(exData));
+    }
+
+    async function syncWithSheets() {
+        const btn = document.querySelector('.btn-save');
+        btn.innerText = "ОТПРАВКА...";
+        btn.disabled = true;
+
+        const syncData = [];
+        const allExercises = [...program.block1, ...program.block2];
+
+        // Сканируем ВСЕ недели в localStorage
+        for (let w = 1; w <= 12; w++) {
+            allExercises.forEach(ex => {
+                const data = JSON.parse(localStorage.getItem(`w${w}-${ex}`) || null);
+                if (data && (data.r || data.p || data.w)) {
+                    syncData.push({
+                        week: w,
+                        exercise: ex,
+                        r: data.r || "",
+                        p: data.p || "",
+                        w: data.w || ""
+                    });
+                }
             });
         }
 
-        function showBlock(num) {
-            document.querySelectorAll('.block').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(`block${num}`).classList.add('active');
-            event.target.classList.add('active');
+        if (syncData.length === 0) {
+            alert("Заполни хотя бы одно поле перед отправкой!");
+            btn.innerText = "В таблицу";
+            btn.disabled = false;
+            return;
         }
 
-        function saveData() {
-            const inputs = document.querySelectorAll('input');
-            const results = {};
-            
-            inputs.forEach(input => {
-                const ex = input.dataset.ex;
-                const type = input.dataset.type;
-                if (!results[ex]) results[ex] = {};
-                results[ex][type] = input.value;
+        try {
+            // Используем POST запрос
+            await fetch(SCRIPT_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(syncData)
             });
 
-            for (let ex in results) {
-                localStorage.setItem(ex, JSON.stringify(results[ex]));
-            }
-            alert('Данные сохранены!');
-            render();
+            btn.innerText = "УСПЕШНО ✓";
+            btn.style.background = "#2ea043";
+            setTimeout(() => {
+                btn.innerText = "В таблицу";
+                btn.style.background = "";
+                btn.disabled = false;
+            }, 2000);
+        } catch (err) {
+            console.error(err);
+            alert("Ошибка при отправке. Проверь интернет или URL скрипта.");
+            btn.innerText = "ОШИБКА";
+            btn.style.background = "#da3633";
+            btn.disabled = false;
         }
+    }
 
-        render();
-    </script>
+    let tInterval;
+    function toggleTimer() {
+        const pop = document.getElementById('timer-pop');
+        if (tInterval) { clearInterval(tInterval); tInterval = null; pop.style.display = 'none'; return; }
+        let time = 90;
+        pop.style.display = 'block';
+        tInterval = setInterval(() => {
+            time--;
+            pop.innerText = `${Math.floor(time/60)}:${(time%60).toString().padStart(2,'0')}`;
+            if (time <= 0) { clearInterval(tInterval); pop.innerText = "ГОТОВ!"; setTimeout(() => pop.style.display = 'none', 3000); }
+        }, 1000);
+    }
+
+    init();
+</script>
 </body>
 </html>
