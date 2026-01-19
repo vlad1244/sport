@@ -208,13 +208,13 @@
         <button class="btn btn-timer" onclick="toggleTimer()">⏱ 1:30</button>
         <button class="btn btn-save" onclick="syncWithSheets()">В таблицу</button>
     </div>
-    <div style="text-align: center; font-size: 10px; color: var(--text-dim)">
-        Данные отправляются в Google Таблицу по нажатию
+    <div id="sync-status" style="text-align: center; font-size: 10px; color: var(--text-dim)">
+        Нажми «В таблицу» для сохранения в облако
     </div>
 </div>
 
 <script>
-    // URL твоего Google Apps Script
+    // Твой новый URL
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyRKya5CJhLbFLHYPLlTGVmwk81LLdR6U1xAS991imede8KfWiRz-mOmKEB256ivDIx/exec";
 
     const program = {
@@ -300,54 +300,58 @@
 
     async function syncWithSheets() {
         const btn = document.querySelector('.btn-save');
+        const statusText = document.getElementById('sync-status');
+        
         btn.innerText = "ОТПРАВКА...";
         btn.disabled = true;
 
         const syncData = [];
         const allExercises = [...program.block1, ...program.block2];
 
-        // Сканируем ВСЕ недели в localStorage
-        for (let w = 1; w <= 12; w++) {
-            allExercises.forEach(ex => {
-                const data = JSON.parse(localStorage.getItem(`w${w}-${ex}`) || null);
-                if (data && (data.r || data.p || data.w)) {
-                    syncData.push({
-                        week: w,
-                        exercise: ex,
-                        r: data.r || "",
-                        p: data.p || "",
-                        w: data.w || ""
-                    });
-                }
-            });
-        }
+        allExercises.forEach(ex => {
+            const data = JSON.parse(localStorage.getItem(`w${currentWeek}-${ex}`) || null);
+            if (data && (data.r || data.p || data.w)) {
+                syncData.push({
+                    week: currentWeek,
+                    exercise: ex,
+                    r: data.r || "",
+                    p: data.p || "",
+                    w: data.w || ""
+                });
+            }
+        });
 
         if (syncData.length === 0) {
-            alert("Заполни хотя бы одно поле перед отправкой!");
+            alert("Заполни данные за текущую неделю!");
             btn.innerText = "В таблицу";
             btn.disabled = false;
             return;
         }
 
         try {
-            // Используем POST запрос
             await fetch(SCRIPT_URL, {
                 method: "POST",
-                mode: "no-cors",
+                mode: "no-cors", 
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(syncData)
             });
 
             btn.innerText = "УСПЕШНО ✓";
             btn.style.background = "#2ea043";
+            statusText.innerText = "Проверь таблицу";
+            statusText.style.color = "var(--success)";
+            
             setTimeout(() => {
                 btn.innerText = "В таблицу";
                 btn.style.background = "";
                 btn.disabled = false;
-            }, 2000);
+                statusText.innerText = "Данные отправляются в Google Таблицу по нажатию";
+                statusText.style.color = "var(--text-dim)";
+            }, 3000);
+
         } catch (err) {
-            console.error(err);
-            alert("Ошибка при отправке. Проверь интернет или URL скрипта.");
+            console.error("Sync Error:", err);
+            alert("Ошибка сети. Проверь доступ в настройках Google Scripts.");
             btn.innerText = "ОШИБКА";
             btn.style.background = "#da3633";
             btn.disabled = false;
