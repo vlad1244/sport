@@ -41,6 +41,9 @@
             margin-right: 5px;
         }
         .online { background: var(--success); box-shadow: 0 0 5px var(--success); }
+        .loading { background: #f1e05a; box-shadow: 0 0 5px #f1e05a; animation: blink 1s infinite; }
+
+        @keyframes blink { 50% { opacity: 0.5; } }
 
         .week-selector {
             display: flex;
@@ -190,7 +193,7 @@
 <div id="timer-pop">01:30</div>
 
 <div class="header">
-    <h2 style="margin:0"><span class="status-dot online"></span>Тренировки</h2>
+    <h2 style="margin:0"><span id="indicator" class="status-dot online"></span>Тренировки</h2>
     <span id="current-date" style="font-size: 12px; color: var(--text-dim)"></span>
 </div>
 
@@ -214,7 +217,6 @@
 </div>
 
 <script>
-    // Твой новый URL
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyRKya5CJhLbFLHYPLlTGVmwk81LLdR6U1xAS991imede8KfWiRz-mOmKEB256ivDIx/exec";
 
     const program = {
@@ -225,10 +227,12 @@
     let currentWeek = parseInt(localStorage.getItem('activeWeek')) || 1;
     let currentBlock = 1;
 
-    function init() {
+    async function init() {
         document.getElementById('current-date').innerText = new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
         renderWeeks();
         renderExercises();
+        // При запуске пытаемся получить свежие данные из облака
+        await loadFromCloud();
     }
 
     function renderWeeks() {
@@ -298,6 +302,29 @@
         localStorage.setItem(`w${currentWeek}-${ex}`, JSON.stringify(exData));
     }
 
+    async function loadFromCloud() {
+        const ind = document.getElementById('indicator');
+        ind.className = 'status-dot loading';
+        
+        try {
+            const resp = await fetch(SCRIPT_URL);
+            const cloudData = await resp.json();
+            
+            if (cloudData && Array.isArray(cloudData)) {
+                cloudData.forEach(item => {
+                    const key = `w${item.week}-${item.exercise}`;
+                    const data = { r: item.r, p: item.p, w: item.w };
+                    localStorage.setItem(key, JSON.stringify(data));
+                });
+                renderExercises();
+                ind.className = 'status-dot online';
+            }
+        } catch (e) {
+            console.log("Cloud load skip (normal for first run or no data)");
+            ind.className = 'status-dot online';
+        }
+    }
+
     async function syncWithSheets() {
         const btn = document.querySelector('.btn-save');
         const statusText = document.getElementById('sync-status');
@@ -308,24 +335,20 @@
         const syncData = [];
         const allExercises = [...program.block1, ...program.block2];
 
-        allExercises.forEach(ex => {
-            const data = JSON.parse(localStorage.getItem(`w${currentWeek}-${ex}`) || null);
-            if (data && (data.r || data.p || data.w)) {
-                syncData.push({
-                    week: currentWeek,
-                    exercise: ex,
-                    r: data.r || "",
-                    p: data.p || "",
-                    w: data.w || ""
-                });
-            }
-        });
-
-        if (syncData.length === 0) {
-            alert("Заполни данные за текущую неделю!");
-            btn.innerText = "В таблицу";
-            btn.disabled = false;
-            return;
+        // Собираем данные за ВСЕ недели, чтобы облако было полным
+        for (let w = 1; w <= 12; w++) {
+            allExercises.forEach(ex => {
+                const data = JSON.parse(localStorage.getItem(`w${w}-${ex}`) || null);
+                if (data && (data.r || data.p || data.w)) {
+                    syncData.push({
+                        week: w,
+                        exercise: ex,
+                        r: data.r || "",
+                        p: data.p || "",
+                        w: data.w || ""
+                    });
+                }
+            });
         }
 
         try {
@@ -338,22 +361,18 @@
 
             btn.innerText = "УСПЕШНО ✓";
             btn.style.background = "#2ea043";
-            statusText.innerText = "Проверь таблицу";
-            statusText.style.color = "var(--success)";
+            statusText.innerText = "Данные в облаке";
             
             setTimeout(() => {
                 btn.innerText = "В таблицу";
                 btn.style.background = "";
                 btn.disabled = false;
-                statusText.innerText = "Данные отправляются в Google Таблицу по нажатию";
-                statusText.style.color = "var(--text-dim)";
+                statusText.innerText = "Нажми «В таблицу» для сохранения в облако";
             }, 3000);
 
         } catch (err) {
-            console.error("Sync Error:", err);
-            alert("Ошибка сети. Проверь доступ в настройках Google Scripts.");
+            alert("Ошибка сети.");
             btn.innerText = "ОШИБКА";
-            btn.style.background = "#da3633";
             btn.disabled = false;
         }
     }
